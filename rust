@@ -1,0 +1,108 @@
+use std::collections::BTreeMap;
+
+#[derive(Debug)]
+struct Item {
+    owner: String,
+    nome: String,
+    descricao: String,
+    lance_atual: u64,
+    lances: BTreeMap<String, u64>, // Mapeamento de principal para valor do lance
+    novo_dono: Option<String>,     // Definido quando o leilão é encerrado
+}
+
+impl Item {
+    fn novo(proprietario: &str, nome: &str, descricao: &str) -> Self {
+        Item {
+            owner: proprietario.to_string(),
+            nome: nome.to_string(),
+            descricao: descricao.to_string(),
+            lance_atual: 0,
+            lances: BTreeMap::new(),
+            novo_dono: None,
+        }
+    }
+}
+
+struct Leilao {
+    itens: BTreeMap<String, Item>, // Mapeamento de nome do item para o item
+}
+
+impl Leilao {
+    fn novo() -> Self {
+        Leilao {
+            itens: BTreeMap::new(),
+        }
+    }
+
+    fn listar_item(&mut self, proprietario: &str, nome: &str, descricao: &str) {
+        let item = Item::novo(proprietario, nome, descricao);
+        self.itens.insert(nome.to_string(), item);
+    }
+
+    fn dar_lance(&mut self, licitante: &str, nome_item: &str, valor: u64) {
+        if let Some(item) = self.itens.get_mut(nome_item) {
+            if valor > item.lance_atual {
+                item.lance_atual = valor;
+                item.lances.insert(licitante.to_string(), valor);
+            }
+        }
+    }
+
+    fn atualizar_lista(&mut self, proprietario: &str, nome_item: &str, nova_descricao: &str) {
+        if let Some(item) = self.itens.get_mut(nome_item) {
+            if proprietario == item.owner {
+                item.descricao = nova_descricao.to_string();
+            }
+        }
+    }
+
+    fn encerrar_lista(&mut self, proprietario: &str, nome_item: &str) {
+        if let Some(item) = self.itens.get_mut(nome_item) {
+            if proprietario == item.owner {
+                item.novo_dono = item.lances.keys().next().cloned();
+            }
+        }
+    }
+
+    fn obter_item(&self, nome_item: &str) -> Option<&Item> {
+        self.itens.get(nome_item)
+    }
+
+    fn obter_lista_itens(&self) -> Vec<&Item> {
+        self.itens.values().collect()
+    }
+
+    fn obter_quantidade_itens(&self) -> usize {
+        self.itens.len()
+    }
+
+    fn obter_item_mais_vendido(&self) -> Option<&Item> {
+        self.itens.values().max_by_key(|item| item.lance_atual)
+    }
+
+    fn obter_item_mais_licitado(&self) -> Option<&Item> {
+        self.itens.values().max_by_key(|item| item.lances.len())
+    }
+}
+
+fn main() {
+    // Exemplo de uso
+    let mut leilao = Leilao::novo();
+    
+    leilao.listar_item("Alice", "Item1", "Descrição1");
+    leilao.dar_lance("Bob", "Item1", 50);
+    leilao.dar_lance("Charlie", "Item1", 60);
+    
+    leilao.listar_item("Alice", "Item2", "Descrição2");
+    leilao.dar_lance("Bob", "Item2", 70);
+    
+    leilao.atualizar_lista("Alice", "Item1", "Descrição Atualizada");
+    
+    leilao.encerrar_lista("Alice", "Item1");
+
+    println!("{:#?}", leilao.obter_item("Item1"));
+    println!("{:#?}", leilao.obter_lista_itens());
+    println!("Número de itens: {}", leilao.obter_quantidade_itens());
+    println!("{:#?}", leilao.obter_item_mais_vendido());
+    println!("{:#?}", leilao.obter_item_mais_licitado());
+}
